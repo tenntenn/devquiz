@@ -19,9 +19,11 @@ type CLI struct {
 	csvpath string
 
 	// options
-	urlRow     int
-	nameRow    int
-	withHeader bool
+	urlRow       int
+	nameRow      int
+	categoryRow  int
+	categoryName string
+	withHeader   bool
 }
 
 func NewCLI(args []string) (*CLI, error) {
@@ -35,6 +37,8 @@ func NewCLI(args []string) (*CLI, error) {
 	flagset.BoolVar(&cli.withHeader, "withheader", false, "with header")
 	flagset.IntVar(&cli.urlRow, "urlrow", 6, "URL row")
 	flagset.IntVar(&cli.nameRow, "namerow", 1, "name row")
+	flagset.IntVar(&cli.categoryRow, "categoryrow", 0, "category row")
+	flagset.StringVar(&cli.categoryName, "categoryname", "Devquiz枠", "surveyed category name")
 	if err := flagset.Parse(args); err != nil {
 		return nil, errors.Wrap(err, "NewCLI")
 	}
@@ -68,10 +72,15 @@ func (cli *CLI) Run() error {
 		cr.Read() // skip
 	}
 
-	v := NewValidator(cr, cli.urlRow, cli.nameRow)
+	v := NewValidator(cr, cli.urlRow, cli.nameRow, cli.categoryRow, cli.categoryName)
 
 LOOP:
 	for i := 1; v.Next(); i++ {
+
+		if err := v.Err(); err != nil {
+			fmt.Printf("%d %s failed(%q)\n", i, v.Name(), err)
+			continue LOOP
+		}
 
 		if v.Result() == nil {
 			fmt.Println(i, "skip")
