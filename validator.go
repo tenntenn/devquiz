@@ -14,22 +14,24 @@ import (
 type Validator struct {
 	HTTPClient *http.Client
 
-	r           *csv.Reader
-	nameRow     int
-	urlRow      int
-	categoryRow int
+	r            *csv.Reader
+	nameRow      int
+	urlRow       int
+	categoryRow  int
+	categoryName string
 
 	name   string
 	result *goplayground.RunResult
 	err    error
 }
 
-func NewValidator(r *csv.Reader, urlRow, nameRow, categoryRow int) *Validator {
+func NewValidator(r *csv.Reader, urlRow, nameRow, categoryRow int, categoryName string) *Validator {
 	return &Validator{
-		r:           r,
-		urlRow:      urlRow,
-		nameRow:     nameRow,
-		categoryRow: categoryRow,
+		r:            r,
+		urlRow:       urlRow,
+		nameRow:      nameRow,
+		categoryRow:  categoryRow,
+		categoryName: categoryName,
 	}
 }
 
@@ -53,6 +55,10 @@ func (v *Validator) Next() bool {
 		return false
 	}
 
+	if v.categoryName != record[v.categoryRow] {
+		return true
+	}
+
 	if v.urlRow < 0 || len(record) <= v.nameRow {
 		v.err = errors.Errorf("invalid nameRow %d", v.nameRow)
 		return false
@@ -65,10 +71,8 @@ func (v *Validator) Next() bool {
 
 	url := record[v.urlRow]
 	if url == "" || !strings.HasPrefix(url, goplayground.BaseURL) {
-		if record[v.categoryRow] == "Devquiz枠" {
-			v.name = record[v.nameRow]
-			v.err = errors.New("cannot get URL")
-		}
+		v.name = record[v.nameRow]
+		v.err = errors.New("cannot get URL")
 		return true
 	}
 
